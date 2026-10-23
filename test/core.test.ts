@@ -202,6 +202,19 @@ describe('rejects anything outside the allow-list', () => {
     expect(bad({ columnFilters: Array.from({ length: 21 }, () => ({ id: 'customer', value: 'a' })) })).toMatch(/at most 20 filters/)
   })
 
+  it('every other documented message', () => {
+    expect(bad({ sorting: 'total' as never })).toBe('expected an array')
+    expect(bad({ sort: 5 })).toBe('expected a string such as "-total,customer"')
+    expect(bad({ columnFilters: {} as never })).toBe('expected an array')
+    expect(bad({ pagination: 3 as never })).toBe('expected { pageIndex, pageSize }')
+    expect(bad({ columnFilters: [{ id: 'total', value: { op: 'between', value: [1] } }] })).toBe('column "total": "between" needs [min, max]')
+    expect(bad({ columnFilters: [{ id: 'total', value: { op: 'in', value: [] } }] })).toBe('column "total": "in" needs at least one value')
+    expect(bad({ columnFilters: [{ id: 'total', value: { op: 'eq' } }] })).toBe('column "total": "eq" needs a value')
+    expect(bad({ columnFilters: [{ id: 'placedAt', value: { op: 'ne', value: '2026-03-01' } }] })).toBe('column "placedAt": use "lt"/"gte" or a datetime with "ne"')
+    expect(bad('?size=abc')).toBe('expected a whole number >= 1')
+    expect(errorOf(() => def.parse({ columnFilters: [{ id: 'note', value: 'x' }] })).message).toBe('Invalid table query: columnFilters.0: unknown column "note"')
+  })
+
   it('global filter only where enabled', () => {
     const noGlobal = defineTableQuery({ columns: { name: { type: 'string' } } })
     expect(errorOf(() => noGlobal.parse({ globalFilter: 'x' })).message).toMatch(/not enabled/)
@@ -232,6 +245,18 @@ describe("invalid: 'ignore'", () => {
     expect(q.filters.map((f) => f.id)).toEqual(['status'])
     expect(q.pagination).toEqual({ pageIndex: 1, pageSize: 50, offset: 50, limit: 50 })
     expect(q.issues.map((i) => i.path[0])).toEqual(['sorting', 'columnFilters', 'pagination'])
+  })
+
+  it('caps page index and leaves out sorts and filters past the limits', () => {
+    const q = defineTableQuery({ columns: def.columns, invalid: 'ignore', maxPageIndex: 5, maxSorts: 1, maxFilters: 1 }).parse({
+      sorting: [{ id: 'total', desc: true }, { id: 'customer', desc: false }],
+      columnFilters: [{ id: 'paid', value: true }, { id: 'status', value: 'paid' }],
+      pagination: { pageIndex: 50, pageSize: 10 },
+    })
+    expect(q.sorting.map((s) => s.id)).toEqual(['total'])
+    expect(q.filters.map((f) => f.id)).toEqual(['paid'])
+    expect(q.pagination.pageIndex).toBe(5)
+    expect(q.issues).toHaveLength(3)
   })
 })
 

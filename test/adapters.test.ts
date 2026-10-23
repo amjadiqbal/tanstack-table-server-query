@@ -127,3 +127,10 @@ describe('Kysely parts', () => {
     expect(rows.map((r) => r.id)).toEqual(reference(byColumn.parse(input)).ids)
   })
 })
+
+describe('Supabase parts', () => {
+  it('PostgREST reads * in search text as a wildcard (documented limitation)', async () => {
+    const page = await querySupabase(new PostgrestClient(POSTGREST_URL).from('orders'), byColumn.parse({ globalFilter: '*', pagination: { pageIndex: 0, pageSize: 5 } }))
+    expect(page.rowCount).toBe(ORDERS.length)
+  })
+})

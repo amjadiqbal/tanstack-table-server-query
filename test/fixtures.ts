@@ -75,6 +75,8 @@ export const CASES: Array<{ name: string; input: Record<string, unknown> | strin
   { name: 'date range (date-only, inclusive end)', input: '?f.placedAt=["2026-01-05","2026-01-09"]&sort=-placedAt&size=50' },
   { name: 'date single day', input: { columnFilters: [{ id: 'placedAt', value: '2026-01-10' }], pagination: { pageIndex: 0, pageSize: 50 } } },
   { name: 'date datetime gte', input: { columnFilters: [{ id: 'placedAt', value: { op: 'gte', value: '2026-02-05T12:00:00Z' } }], pagination: { pageIndex: 0, pageSize: 50 } } },
+  { name: 'string notIn with comma, quote, paren', input: { columnFilters: [{ id: 'customer', value: { op: 'notIn', value: ['Comma, Inc', 'Quote "Co"', 'Paren (Ltd)', 'Back\\slash'] } }], pagination: { pageIndex: 0, pageSize: 70 } } },
+  { name: 'string in with comma and quote', input: { columnFilters: [{ id: 'customer', value: ['Comma, Inc', 'Quote "Co"', "O'Brien"] }] } },
   { name: 'boolean', input: '?f.paid=false&size=50' },
   { name: 'isNull / isNotNull', input: { columnFilters: [{ id: 'note', value: { op: 'isNull' } }], pagination: { pageIndex: 0, pageSize: 50 } } },
   { name: 'isNotNull + contains combo', input: { columnFilters: [{ id: 'note', value: { op: 'isNotNull' } }, { id: 'customer', value: 'a' }], pagination: { pageIndex: 1, pageSize: 10 } } },

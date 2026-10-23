@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-23
+
+No code changes.
+
+### Added (tests)
+
+- The adapter suite also runs on the lowest supported peers, drizzle-orm 0.36.4 and kysely 0.27.6.
+- `in` / `notIn` cases with commas, quotes, parentheses and backslashes in the values, for every adapter.
+- A test that pins PostgREST's `*`-is-a-wildcard behaviour the README describes.
+
+### Changed (docs)
+
+- README: an Errors section listing every error message, its path, what `invalid: 'ignore'` caps or
+  drops, how errors look through a Start `.validator()`, and which adapter calls throw. Tested
+  versions are named exactly.
+
 ## [0.1.0] - 2026-10-23
 
 ### Added

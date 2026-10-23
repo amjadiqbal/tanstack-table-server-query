@@ -46,7 +46,7 @@ npm i @amjadiqbal/tanstack-table-server-query
 ```
 
 Install the ORM you use as usual. `drizzle-orm` (>= 0.36) and `kysely` (>= 0.27) are optional peer
-dependencies of their adapters. The Prisma and Supabase adapters import nothing: they build plain
+dependencies of their adapters; both the lowest and the current versions are tested (see below). The Prisma and Supabase adapters import nothing: they build plain
 arguments and call the client you pass in.
 
 ## 1. Define the allow-list
@@ -227,6 +227,60 @@ explicit `{ op, value }`:
 - Restrict a column with `ops: [...]`, `sortable: false` or `filterable: false`.
 - All filters are AND-ed; the global filter is an OR across its columns (string columns only).
 
+## Errors
+
+`parse()` throws a `TableQueryError` when anything in the input is outside the definition:
+
+```ts
+try {
+  ordersQuery.parse(input)
+} catch (e) {
+  if (e instanceof TableQueryError) {
+    e.status   // 400
+    e.issues   // [{ path: ['columnFilters', 0], message: 'unknown column "note"' }, ...]
+    e.message  // 'Invalid table query: columnFilters.0: unknown column "note"'
+  }
+}
+```
+
+Every problem is collected, not just the first. The messages are:
+
+| Path | Message |
+|---|---|
+| (root) | `expected table state, URLSearchParams, a query string or a search object` |
+| `sorting` | `expected an array`, `at most 3 sort columns` (`maxSorts`) |
+| `sorting.N` | `unknown column "x"`, `column "x" is not sortable` |
+| `sort` (URL) | `expected a string such as "-total,customer"` |
+| `columnFilters` | `expected an array`, `at most 20 filters` (`maxFilters`) |
+| `columnFilters.N` | `unknown column "x"`, `column "x" is not filterable`, or `column "x": ` followed by one of the messages below |
+| | `unknown operator "op"`, `operator "op" is not allowed` |
+| | `expected a string`, `expected a number`, `expected true or false`, `expected a date (ISO string or timestamp)`, `"v" is not one of the allowed values`, `longer than 200 characters` (`maxStringLength`) |
+| | `"in" needs an array`, `"in" needs at least one value`, `at most 100 values` (`maxListLength`), `"between" needs [min, max]` |
+| | `"eq" needs a value` (for an explicit `{ op }` without a value; the operator name varies) |
+| | `use "lt"/"gte" or a datetime with "ne"` (`ne` with a date-only value is refused because it would mean "not that whole day") |
+| `globalFilter` | `expected a string`, `longer than 200 characters` (`globalFilter.maxLength`), `global filter is not enabled for this table` |
+| `pagination` | `expected { pageIndex, pageSize }` |
+| `pagination.pageIndex` | `expected a whole number >= 0`, `at most 10000` (`maxPageIndex`) |
+| `pagination.pageSize` | `expected a whole number >= 1` (also for a non-numeric `size=`), `at most 100` (`maxPageSize`) |
+| `page` (URL) | `expected a whole number >= 1` |
+
+The numbers are the defaults; the message shows your configured limit.
+
+With `invalid: 'ignore'` nothing is thrown: a too large page size or page index is capped at the
+maximum, sorts and filters past `maxSorts` / `maxFilters` are left out, every other bad part is
+dropped, and each one is still listed in `query.issues`.
+
+`safeParse()` never throws a `TableQueryError`; it returns `{ success: false, error }`. Mistakes in
+the definition itself (an enum without `values`, an operator that does not fit the type, an unknown
+column in `defaultSorting` or `globalFilter`) throw a plain `Error` when `defineTableQuery()` runs.
+
+Used as a TanStack Start `.validator()`, a failed parse reaches the client as an `Error` whose message
+is the JSON list of issues (seen with Start 1.169); Start decides the HTTP status. If you need a 400
+response, take the raw input and call `safeParse()` in the handler instead.
+
+Adapters throw too: `toDrizzle()` when a `field` is not a column of the Drizzle source, and
+`querySupabase()` with the PostgREST error when the request fails.
+
 ## Options
 
 | Option | Default | |
@@ -249,15 +303,16 @@ explicit `{ op, value }`:
 - Unit tests (vitest) for parsing every input shape, the operators, ranges, dates, limits, the
   allow-list errors, `invalid: 'ignore'` and the Standard Schema interface. A test feeds the
   output of the published `@amjadiqbal/tanstack-table-url-state` 0.1.1 encoder straight into `parse()`.
-- **Every adapter against a real database**, 32 cases each, compared row by row with a reference
+- **Every adapter against a real database**, 34 cases each, compared row by row with a reference
   implementation: sorting, multi-sort with tiebreaker, paging (including past the end), each
-  operator, ranges, dates, booleans, nulls, global filter, and search text containing `%`, `_`,
-  `\`, quotes, apostrophes, commas and parentheses:
-  - Drizzle 0.45 + PostgreSQL 17 (`node-postgres`)
-  - Drizzle 0.45 + SQLite (`better-sqlite3`)
-  - Prisma 7.10 + PostgreSQL 17 (`@prisma/adapter-pg`)
-  - Kysely 0.29 + PostgreSQL 17
+  operator, ranges, dates, booleans, nulls, global filter, and search text and `in` / `notIn` values
+  containing `%`, `_`, `\`, quotes, apostrophes, commas and parentheses:
+  - Drizzle 0.45.4 + PostgreSQL 17 (`node-postgres`)
+  - Drizzle 0.45.4 + SQLite (`better-sqlite3`)
+  - Prisma 7.10.1 + PostgreSQL 17 (`@prisma/adapter-pg`)
+  - Kysely 0.29.7 + PostgreSQL 17
   - `@supabase/postgrest-js` 2.118 + PostgREST 13.0.7 + PostgreSQL 17 (a local PostgREST, not a hosted Supabase project)
+  - The same adapter suite also passes with the lowest supported peers, drizzle-orm 0.36.4 and kysely 0.27.6.
 - A TanStack Start 1.169 app with a TanStack Table 9.3 table, checked by hand in a browser: sorting,
   filters, global search, paging and page size through a server function using the definition as
   `.validator()`, with each of the four adapters. See the release notes for what was checked.
