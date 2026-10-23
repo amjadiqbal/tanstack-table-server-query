@@ -134,3 +134,73 @@ describe('Supabase parts', () => {
     expect(page.rowCount).toBe(ORDERS.length)
   })
 })
+
+describe('consistent counts (README recipes)', () => {
+  const q = () => byProperty.parse({ columnFilters: [{ id: 'status', value: 'paid' }], pagination: { pageIndex: 0, pageSize: 100 } })
+  const qc = () => byColumn.parse({ columnFilters: [{ id: 'status', value: 'paid' }], pagination: { pageIndex: 0, pageSize: 100 } })
+  const expected = () => reference(q()).rowCount
+  // A write from another connection between the two reads must not change what the transaction sees.
+  const concurrentInsert = () =>
+    pool.query(`insert into orders (id, customer, status, total, placed_at, paid, note) values (9001, 'Late Ltd', 'paid', 1, now(), true, null)`)
+  const cleanup = () => pool.query('delete from orders where id = 9001')
+
+  it('Drizzle in a repeatable read transaction', async () => {
+    try {
+      const counts = await drizzlePg(pool).transaction(
+        async (tx) => {
+          const first = await queryDrizzle(tx, pgOrders, q())
+          await concurrentInsert()
+          const second = await queryDrizzle(tx, pgOrders, q())
+          return [first.rowCount, second.rowCount, second.rows.length]
+        },
+        { isolationLevel: 'repeatable read' },
+      )
+      expect(counts).toEqual([expected(), expected(), expected()])
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it('Kysely in a repeatable read transaction', async () => {
+    try {
+      const counts = await kysely
+        .transaction()
+        .setIsolationLevel('repeatable read')
+        .execute(async (trx) => {
+          const first = await queryKysely(trx, 'orders', qc())
+          await concurrentInsert()
+          const second = await queryKysely(trx, 'orders', qc())
+          return [first.rowCount, second.rowCount, second.rows.length]
+        })
+      expect(counts).toEqual([expected(), expected(), expected()])
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it('Prisma in a repeatable read transaction', async () => {
+    try {
+      const counts = await prisma.$transaction(
+        async (tx) => {
+          const first = await queryPrisma(tx.order, q())
+          await concurrentInsert()
+          const second = await queryPrisma(tx.order, q())
+          return [first.rowCount, second.rowCount, second.rows.length]
+        },
+        { isolationLevel: 'RepeatableRead' },
+      )
+      expect(counts).toEqual([expected(), expected(), expected()])
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it('without a transaction the second read sees the new row (why the recipe exists)', async () => {
+    try {
+      await concurrentInsert()
+      expect((await queryDrizzle(drizzlePg(pool), pgOrders, q())).rowCount).toBe(expected() + 1)
+    } finally {
+      await cleanup()
+    }
+  })
+})

@@ -38,7 +38,8 @@ export function drizzleWhere(query: TableQuery, source: DrizzleSource): SQL | un
 
 /**
  * Run the page query and the count query on a table and return rows plus counts.
- * Works with any Drizzle driver whose `db.select()` is awaitable (Postgres, SQLite, MySQL...).
+ * Tested with node-postgres (PostgreSQL) and better-sqlite3 (SQLite); MySQL is not tested.
+ * The two queries run at the same time, not in a transaction; see "Consistent counts" in the README.
  */
 export async function queryDrizzle<Row = Record<string, unknown>>(db: DrizzleDb, table: Table, query: TableQuery): Promise<TablePage<Row>> {
   const { where, orderBy, limit, offset } = toDrizzle(query, table)
@@ -65,7 +66,7 @@ function isTable(s: DrizzleSource): s is Table {
   return typeof s === 'object' && s !== null && Symbol.for('drizzle:IsDrizzleTable') in s
 }
 
-// Case-insensitive LIKE that works on Postgres, SQLite and MySQL; `\` escapes `%` and `_`.
+// Case-insensitive LIKE, tested on PostgreSQL and SQLite; `\` escapes `%` and `_`.
 function ilike(col: SQLWrapper, pattern: string): SQL {
   return sql`lower(${col}) like lower(${pattern}) escape '\\'`
 }

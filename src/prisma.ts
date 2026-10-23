@@ -9,7 +9,8 @@ export interface PrismaOptions {
   /**
    * Escape `%`, `_` and `\\` in `contains` / `startsWith` / `endsWith` values. Default `true`.
    * Prisma passes them to LIKE unescaped, so without this `50%` matches `50` followed by anything.
-   * The escape character is `\\`, the default on PostgreSQL and MySQL.
+   * There is no ESCAPE clause, so this relies on `\\` being the database's default LIKE escape
+   * character, as on PostgreSQL (the only database this adapter is tested on).
    */
   escapeWildcards?: boolean
 }
@@ -52,7 +53,11 @@ export interface PrismaDelegate<Row> {
   count(args: any): PromiseLike<number>
 }
 
-/** Run `findMany` and `count` with the same `where` and return rows plus counts. `extra` is merged into `findMany` (e.g. `select`, `include`). */
+/**
+ * Run `findMany` and `count` with the same `where` and return rows plus counts. `extra` is merged into
+ * `findMany` (e.g. `select`, `include`).
+ * The two queries run at the same time, not in a transaction; see "Consistent counts" in the README.
+ */
 export async function queryPrisma<Row>(
   delegate: PrismaDelegate<Row>,
   query: TableQuery,

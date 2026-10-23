@@ -28,7 +28,10 @@ export function kyselyWhere(eb: ExpressionBuilder<any, any>, query: TableQuery):
   return eb.and(parts)
 }
 
-/** Select all columns of `table` with the query applied, plus a count with the same WHERE. */
+/**
+ * Select all columns of `table` with the query applied, plus a count with the same WHERE.
+ * The two queries run at the same time, not in a transaction; see "Consistent counts" in the README.
+ */
 export async function queryKysely<Row = Record<string, unknown>>(db: Kysely<any>, table: string, query: TableQuery): Promise<TablePage<Row>> {
   const [rows, total] = await Promise.all([
     applyKysely(db.selectFrom(table).selectAll(), query).execute(),
@@ -37,7 +40,7 @@ export async function queryKysely<Row = Record<string, unknown>>(db: Kysely<any>
   return toTablePage(rows as Row[], Number((total as { count?: unknown } | undefined)?.count ?? 0), query)
 }
 
-// Case-insensitive LIKE that works on Postgres, SQLite and MySQL; `\` escapes `%` and `_`.
+// Case-insensitive LIKE, tested on PostgreSQL; `\` escapes `%` and `_`.
 function ilike(field: string, pattern: string): Expression<SqlBool> {
   return sql<SqlBool>`lower(${sql.ref(field)}) like lower(${pattern}) escape '\\'`
 }

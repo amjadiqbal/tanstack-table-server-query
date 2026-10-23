@@ -24,12 +24,14 @@ returns the rows plus the total count your manually paginated table needs.
   operators. Unknown columns, operators and badly typed values are rejected with a 400-style error.
 - **Values are always bound parameters.** Column names come from your config, never from the request.
   `%`, `_` and `\` in search text are escaped, so `50%` finds "50%", not everything starting with 50.
-- **Limits built in:** page size (default max 100), page index, number of filters and sorts, `in`
-  list length and string length.
+- **Limits built in:** a request over the page size limit (default 100), page index limit, number of
+  filters and sorts, `in` list length or string length is rejected (or capped/dropped with
+  `invalid: 'ignore'`, see [Errors](#errors)).
 - **Filters by column type:** `string`, `enum`, `number`, `date`, `boolean`, with `eq`, `ne`, `lt`,
   `lte`, `gt`, `gte`, `between`, `in`, `notIn`, `contains`, `startsWith`, `endsWith`, `isNull`,
   `isNotNull`. Number and date ranges behave like Table's `inNumberRange` / `inDateRange`.
-- **Rows plus `rowCount` and `pageCount`** from one call per adapter.
+- **Rows plus `rowCount` and `pageCount`** from one helper call per adapter (two queries, see
+  [Consistent counts](#consistent-counts)).
 - **Reads what the client already has:** table state from a request body, `URLSearchParams`, a query
   string, or TanStack Router's `search` object, in the same URL format as
   [`@amjadiqbal/tanstack-table-url-state`](https://github.com/amjadiqbal/tanstack-table-url-state).
@@ -78,7 +80,8 @@ The column ids are the ids of your Table columns. Anything that is not listed ca
 const query = ordersQuery.parse(input)
 ```
 
-`input` can be any of:
+`input` can be any of the following. An object with a `sorting`, `columnFilters`, `globalFilter` or
+`pagination` key is read as Table state; any other object is read as search params.
 
 | Input | Example |
 |---|---|
@@ -89,6 +92,13 @@ const query = ordersQuery.parse(input)
 `parse()` throws a `TableQueryError` (`.status` is 400, `.issues` lists each problem with its path).
 `safeParse()` returns `{ success, data | error }`. With `invalid: 'ignore'` bad parts are dropped and
 listed in `query.issues` instead, which suits hand-edited URLs.
+
+Normalisation worth knowing:
+
+- The global filter is trimmed; a number (`q=42` read by the Router as `42`) is used as the text `"42"`.
+  An empty or all-space search means no search.
+- A column listed twice in `sorting` is used once, at its first position.
+- With a `tiebreaker`, that field is appended ascending unless the request already sorts on it.
 
 The result is a plain, database-neutral description:
 
@@ -133,7 +143,10 @@ const rows = await prisma.order.findMany({ ...args, include: { customer: true } 
 
 `field` names the Prisma model field. Text filters and the global filter use `mode: 'insensitive'`
 (PostgreSQL); pass `{ insensitive: false }` on databases without it. Prisma does not escape `%`
-and `_` in `contains`, so this adapter does (`escapeWildcards`, default `true`, escape character `\`).
+and `_` in `contains` / `startsWith` / `endsWith`, so this adapter does (`escapeWildcards`, default
+`true`). It puts a `\` before `%`, `_` and `\`, and Prisma's query has no `ESCAPE` clause, so this
+relies on `\` being the database's default LIKE escape character, as it is on PostgreSQL. The Prisma
+adapter is tested on PostgreSQL only.
 
 ### Kysely
 
@@ -152,19 +165,46 @@ the WHERE clause.
 ```ts
 import { querySupabase, applySupabase } from '@amjadiqbal/tanstack-table-server-query/supabase'
 
-const page = await querySupabase(supabase.from('orders'), query)            // one request, count: 'exact'
+const page = await querySupabase(supabase.from('orders'), query)            // rows + count: 'exact'
 const { data, count } = await applySupabase(supabase.from('orders').select('*', { count: 'exact' }), query)
 ```
 
 `field` names the database column. Values in `or()` and `not.in` lists are quoted, so commas,
-parentheses and quotes in search text cannot change the filter. A page past the end (PostgREST's
-416) comes back as no rows with the right count. PostgREST turns `*` in `ilike` patterns into a
+parentheses and quotes in search text cannot change the filter. `querySupabase()` normally makes one
+request (rows plus `count: 'exact'`). For a page past the end PostgREST answers 416 (`PGRST103`); the
+adapter then sends a second, head-only request with the same filters and returns no rows with the
+right count. PostgREST turns `*` in `ilike` patterns into a
 wildcard, so a `*` typed into a search box matches anything there.
+
+## Consistent counts
+
+`queryDrizzle()`, `queryKysely()` and `queryPrisma()` run the rows query and the count query at the
+same time (`Promise.all`), not in a transaction. If rows are written in between, `rowCount` can
+disagree with the rows by a few. When that matters, run the same helper inside a `REPEATABLE READ`
+transaction, so both queries read one snapshot (PostgreSQL; these three recipes are tested):
+
+```ts
+// Drizzle (node-postgres)
+const page = await db.transaction((tx) => queryDrizzle(tx, orders, query), { isolationLevel: 'repeatable read' })
+
+// Kysely
+const page = await db.transaction().setIsolationLevel('repeatable read').execute((trx) => queryKysely(trx, 'orders', query))
+
+// Prisma
+const page = await prisma.$transaction((tx) => queryPrisma(tx.order, query), { isolationLevel: 'RepeatableRead' })
+```
+
+`querySupabase()` gets rows and count from one PostgREST request, except for a page past the end
+(see above).
 
 ## TanStack Start
 
 The definition is a [Standard Schema](https://standardschema.dev), so a server function can use it
-as its validator and receive the parsed query (Start 1.169 reads `~standard` before anything else):
+as its validator and receive the parsed query. There is no separate Start helper: the object returned
+by `defineTableQuery()` implements Standard Schema v1 itself (`~standard`), and Start's validator reads
+`~standard` before anything else. The newest Start on npm on 2026-10-23, `@tanstack/react-start`
+1.169.4 (`@tanstack/start-client-core` 1.170.39), names the method `.validator()`; that is the version
+tested:
 
 ```ts
 import { createServerFn } from '@tanstack/react-start'
@@ -218,8 +258,11 @@ explicit `{ op, value }`:
 
 - Ranges: a blank end is open (`[null, 500]`), reversed ends are swapped, as in Table's
   `inNumberRange` / `inDateRange`. `between` becomes `gte` + `lte`.
-- Dates are ISO strings or timestamps. A date-only value is a UTC day, and a date-only upper bound
-  includes that whole day (`< next day`).
+- Dates are ISO strings or timestamps. A date-only value is a UTC day:
+  - `eq` / plain value `2026-03-01` → `>= 2026-03-01T00:00Z` and `< 2026-03-02T00:00Z`
+  - a date-only upper bound of a range, or `lte` → `< next day` (the whole day is included)
+  - `gt` → `>= next day`; `gte` and `lt` keep the day start
+  - `ne` with a date-only value is refused (use a range or a full datetime)
 - `contains`, `startsWith`, `endsWith` and the global filter are case-insensitive
   (`lower(col) LIKE lower($1) ESCAPE '\'` in Drizzle and Kysely, `ilike` in PostgREST,
   `mode: 'insensitive'` in Prisma).
@@ -316,7 +359,10 @@ Adapters throw too: `toDrizzle()` when a `field` is not a column of the Drizzle 
 - A TanStack Start 1.169 app with a TanStack Table 9.3 table, checked by hand in a browser: sorting,
   filters, global search, paging and page size through a server function using the definition as
   `.validator()`, with each of the four adapters. See the release notes for what was checked.
-- Not tested yet: MySQL, Prisma on SQLite or MySQL, Kysely on SQLite, a hosted Supabase project,
+- MySQL is not tested and not supported yet. The Drizzle and Kysely adapters write `ESCAPE '\'`, and in
+  MySQL's default SQL mode a backslash inside a string literal is itself an escape, so that clause
+  is likely to fail there.
+- Not tested yet: Prisma on SQLite or MySQL, Kysely on SQLite, a hosted Supabase project,
   Solid/Vue/Svelte tables (the core is framework-free, but only React was used).
 
 ## Support

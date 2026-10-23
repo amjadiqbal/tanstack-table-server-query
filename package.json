@@ -1,6 +1,6 @@
 {
   "name": "@amjadiqbal/tanstack-table-server-query",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Turn TanStack Table v9 state (sorting, column filters, global filter, pagination) into safe server-side queries for Drizzle, Prisma, Kysely and Supabase.",
   "license": "MIT",
   "author": "Amjad Iqbal (https://amjad.com.pk)",

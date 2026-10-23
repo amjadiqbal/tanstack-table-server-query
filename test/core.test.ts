@@ -92,6 +92,17 @@ describe('input shapes', () => {
     expect(q.pagination).toEqual({ pageIndex: 4, pageSize: 50, offset: 200, limit: 50 })
   })
 
+  it('normalises search and sorting as the README says', () => {
+    expect(def.parse({ q: 42 }).globalFilter?.value).toBe('42')
+    expect(def.parse({ globalFilter: '   ' }).globalFilter).toBeNull()
+    expect(def.parse('?sort=-total,customer,total').sorting.map((s) => [s.id, s.desc])).toEqual([
+      ['total', true],
+      ['customer', false],
+      ['id', false],
+    ])
+    expect(def.parse('?sort=-id').sorting.map((s) => [s.id, s.desc])).toEqual([['id', true]])
+  })
+
   it('uses defaults when the input is empty', () => {
     const q = def.parse({})
     expect(q.sorting).toEqual([
