@@ -34,7 +34,7 @@ returns the rows plus the total count your manually paginated table needs.
   string, or TanStack Router's `search` object, in the same URL format as
   [`@amjadiqbal/tanstack-table-url-state`](https://github.com/amjadiqbal/tanstack-table-url-state).
 - **Standard Schema validator**, so the definition plugs straight into a TanStack Start server
-  function's `inputValidator`.
+  function's `.validator()`.
 - Typed, ESM-only, `sideEffects: false`, no runtime dependencies, no telemetry, no network calls.
 
 Community package, not affiliated with TanStack, Drizzle, Prisma, Kysely or Supabase.
@@ -164,13 +164,13 @@ wildcard, so a `*` typed into a search box matches anything there.
 ## TanStack Start
 
 The definition is a [Standard Schema](https://standardschema.dev), so a server function can use it
-as its validator and receive the parsed query:
+as its validator and receive the parsed query (Start 1.169 reads `~standard` before anything else):
 
 ```ts
 import { createServerFn } from '@tanstack/react-start'
 
 export const getOrders = createServerFn({ method: 'GET' })
-  .inputValidator(ordersQuery)
+  .validator(ordersQuery)
   .handler(({ data }) => queryDrizzle(db, orders, data))
 ```
 
@@ -260,7 +260,7 @@ explicit `{ op, value }`:
   - `@supabase/postgrest-js` 2.118 + PostgREST 13.0.7 + PostgreSQL 17 (a local PostgREST, not a hosted Supabase project)
 - A TanStack Start 1.169 app with a TanStack Table 9.3 table, checked by hand in a browser: sorting,
   filters, global search, paging and page size through a server function using the definition as
-  `inputValidator`, with each of the four adapters. See the release notes for what was checked.
+  `.validator()`, with each of the four adapters. See the release notes for what was checked.
 - Not tested yet: MySQL, Prisma on SQLite or MySQL, Kysely on SQLite, a hosted Supabase project,
   Solid/Vue/Svelte tables (the core is framework-free, but only React was used).
 
