@@ -11,10 +11,10 @@ import { PostgrestClient } from '@supabase/postgrest-js'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from './prisma/generated/client'
 import { queryDrizzle, toDrizzle } from '../src/drizzle'
-import { queryKysely } from '../src/kysely'
+import { applyKysely, queryKysely } from '../src/kysely'
 import { queryPrisma } from '../src/prisma'
 import { querySupabase } from '../src/supabase'
-import type { TablePage, TableQuery } from '../src'
+import { defineTableQuery, type TablePage, type TableQuery } from '../src'
 import { CASES, ORDERS, PG_URL, POSTGREST_URL, makeDefinition, reference } from './fixtures'
 
 const pgOrders = pgTable('orders', {
@@ -112,5 +112,18 @@ describe('Drizzle parts', () => {
   it('throws for a field the Drizzle table does not have', () => {
     const q = makeDefinition({ placedAt: 'nope' }).parse({ sorting: [{ id: 'placedAt', desc: false }] })
     expect(() => toDrizzle(q, pgOrders)).toThrow(/"nope" is not a column/)
+  })
+})
+
+describe('Kysely parts', () => {
+  it('works with an aliased table and qualified fields', async () => {
+    const aliased = defineTableQuery({
+      columns: { customer: { type: 'string', field: 'o.customer' }, total: { type: 'number', field: 'o.total' } },
+      tiebreaker: 'o.id',
+      globalFilter: { columns: ['customer'] },
+    })
+    const input = { sorting: [{ id: 'total', desc: true }], columnFilters: [{ id: 'total', value: [500, 3000] }], globalFilter: 'a', pagination: { pageIndex: 1, pageSize: 5 } }
+    const rows = await applyKysely(kysely.selectFrom('orders as o').select(['o.id', 'o.total']), aliased.parse(input)).execute()
+    expect(rows.map((r) => r.id)).toEqual(reference(byColumn.parse(input)).ids)
   })
 })
