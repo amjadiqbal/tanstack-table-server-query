@@ -100,9 +100,12 @@ Normalisation worth knowing:
   (`f.status=["paid","pending"]`), a JSON object (`{"op":"eq","value":"x"}`) or a JSON-quoted string
   (`q="42"`, as tanstack-table-url-state writes it) is parsed. `number`, `date` and `boolean` filters parse
   numbers, `true` / `false` and arrays.
-- A search object whose values a router has already JSON-parsed may hand over numbers or booleans;
-  they are used as text (`true` → `"true"`, `1.5` → `"1.5"`), but the router may already have changed
-  them (`1.50` → `1.5`). tanstack-table-url-state quotes such values (`q="1.50"`), so they arrive intact.
+- TanStack Router JSON-parses search params itself, before your loader or server function sees them,
+  and also normalises `location.searchStr` (seen with Router 1.170: a hand-typed `?q=17.0` reaches the
+  server as `17`, `?q=null` as no search). Numbers and booleans it hands over are used as text
+  (`true` → `"true"`, `17` → `"17"`), but what the router changed cannot be undone. Text typed into a
+  table that uses tanstack-table-url-state is written quoted (`q="17.0"`) and arrives exactly as typed.
+  A plain query string or `URLSearchParams` (for example from the request URL) is always read exactly.
 - The global filter is trimmed. An empty or all-space search means no search.
 - A column listed twice in `sorting` is used once, at its first position. Duplicates are removed
   before `maxSorts` is checked, so `sort=a,a,a,b` counts as two columns.
