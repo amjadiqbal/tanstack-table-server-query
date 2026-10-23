@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Order {
+  id       Int      @id
+  customer String
+  status   String
+  total    Float
+  placedAt DateTime @map("placed_at") @db.Timestamptz
+  paid     Boolean
+  note     String?
+
+  @@map("orders")
+}

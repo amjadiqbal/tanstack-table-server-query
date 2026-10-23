@@ -1,0 +1,25 @@
+# Real databases for the adapter tests: `docker compose -f test/docker-compose.yml up -d --wait`
+name: tsq-test
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: tsq
+      POSTGRES_PASSWORD: tsq
+      POSTGRES_DB: tsq
+      POSTGRES_INITDB_ARGS: --locale=C --encoding=UTF8
+    ports: ["127.0.0.1:54329:5432"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "tsq"]
+      interval: 1s
+      retries: 30
+  postgrest:
+    image: postgrest/postgrest:v13.0.7
+    environment:
+      PGRST_DB_URI: postgres://tsq:tsq@postgres:5432/tsq
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: tsq
+    ports: ["127.0.0.1:54330:3000"]
+    depends_on:
+      postgres:
+        condition: service_healthy
