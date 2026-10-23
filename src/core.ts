@@ -351,7 +351,7 @@ function paramsToState(rec: Record<string, unknown>, keys: ParamKeys, issue: (pa
         .map((part) => (part.startsWith('-') ? { id: unescId(part.slice(1)), desc: true } : { id: unescId(part), desc: false }))
   }
   const q = rec[keys.globalFilter]
-  if (q !== undefined) state.globalFilter = typeof q === 'string' ? decodeValue(q) : q
+  if (q !== undefined) state.globalFilter = typeof q === 'string' ? decodeText(q) : q
   const page = rec[keys.page]
   const size = rec[keys.pageSize]
   if (page !== undefined || size !== undefined) {
@@ -366,10 +366,43 @@ function paramsToState(rec: Record<string, unknown>, keys: ParamKeys, issue: (pa
   const filters: Array<{ id: string; value: unknown }> = []
   for (const [k, v] of Object.entries(rec)) {
     if (k.startsWith(keys.columnFilterPrefix) && k.length > keys.columnFilterPrefix.length)
-      filters.push({ id: k.slice(keys.columnFilterPrefix.length), value: typeof v === 'string' ? decodeValue(v) : v })
+      filters.push({ id: k.slice(keys.columnFilterPrefix.length), value: typeof v === 'string' ? new UrlParam(v) : v })
   }
   if (filters.length) state.columnFilters = filters
   return state
+}
+
+/** A filter value still as typed in the URL; it is decoded once the column type is known. */
+class UrlParam {
+  constructor(readonly raw: string) {}
+}
+
+/**
+ * Decode a URL filter value for a column type. Text columns keep exactly what was typed; only a JSON
+ * array, object or quoted string (as tanstack-table-url-state writes them) is parsed. Number, date and
+ * boolean columns use the same rules as tanstack-table-url-state's decoder.
+ */
+function decodeFor(type: ColumnType, raw: string): unknown {
+  if (type !== 'string' && type !== 'enum') return decodeValue(raw)
+  const c = raw[0]
+  if (c !== '"' && c !== '[' && c !== '{') return raw
+  try {
+    const v = JSON.parse(raw)
+    return v !== null && typeof v === 'object' ? v : typeof v === 'string' ? v : raw
+  } catch {
+    return raw
+  }
+}
+
+/** The global search text: exactly as typed, except a JSON-quoted string (`q="42"`) is unquoted. */
+function decodeText(raw: string): string {
+  if (raw[0] !== '"') return raw
+  try {
+    const v = JSON.parse(raw)
+    return typeof v === 'string' ? v : raw
+  } catch {
+    return raw
+  }
 }
 
 /** Same rules as tanstack-table-url-state: plain strings stay strings, JSON-looking ones are parsed. */
@@ -402,17 +435,29 @@ function build(o: Resolved, input: TableQueryInput): TableQuery {
   const rawSort = state.sorting
   if (rawSort !== undefined && !Array.isArray(rawSort)) issue(['sorting'], 'expected an array')
   else if (rawSort) {
-    if (rawSort.length > o.maxSorts) issue(['sorting'], `at most ${o.maxSorts} sort columns`)
+    // A column listed twice is used once, at its first position, before the limit is applied.
     const seen = new Set<string>()
-    rawSort.slice(0, o.maxSorts).forEach((s, i) => {
-      const id = s && typeof s === 'object' ? (s as { id?: unknown }).id : undefined
+    const unique = rawSort
+      .map((s, i) => ({ s, i, id: s && typeof s === 'object' ? (s as { id?: unknown }).id : undefined }))
+      .filter(({ id }) => {
+        if (typeof id !== 'string') return true
+        if (seen.has(id)) return false
+        seen.add(id)
+        return true
+      })
+    if (unique.length > o.maxSorts) issue(['sorting'], `at most ${o.maxSorts} sort columns`)
+    for (const { s, i, id } of unique.slice(0, o.maxSorts)) {
       const col = typeof id === 'string' ? o.columns.get(id) : undefined
-      if (!col) return issue(['sorting', i], `unknown column ${JSON.stringify(id)}`)
-      if (!col.sortable) return issue(['sorting', i], `column "${col.id}" is not sortable`)
-      if (seen.has(col.id)) return
-      seen.add(col.id)
+      if (!col) {
+        issue(['sorting', i], `unknown column ${JSON.stringify(id)}`)
+        continue
+      }
+      if (!col.sortable) {
+        issue(['sorting', i], `column "${col.id}" is not sortable`)
+        continue
+      }
       sorting.push({ id: col.id, field: col.field, desc: (s as { desc?: unknown }).desc === true })
-    })
+    }
   }
   if (!sorting.length) sorting.push(...o.defaultSorting)
   if (o.tiebreaker && !sorting.some((s) => s.field === o.tiebreaker)) sorting.push({ id: o.tiebreaker, field: o.tiebreaker, desc: false })
@@ -428,7 +473,8 @@ function build(o: Resolved, input: TableQueryInput): TableQuery {
       const col = typeof id === 'string' ? o.columns.get(id) : undefined
       if (!col) return issue(['columnFilters', i], `unknown column ${JSON.stringify(id)}`)
       if (!col.filterable) return issue(['columnFilters', i], `column "${col.id}" is not filterable`)
-      const err = filterFor(o, col, (f as { value?: unknown }).value, filters)
+      const raw = (f as { value?: unknown }).value
+      const err = filterFor(o, col, raw instanceof UrlParam ? decodeFor(col.type, raw.raw) : raw, filters)
       if (err) issue(['columnFilters', i], `column "${col.id}": ${err}`)
     })
   }
@@ -437,7 +483,8 @@ function build(o: Resolved, input: TableQueryInput): TableQuery {
   let globalFilter: TableQuery['globalFilter'] = null
   const g = state.globalFilter
   if (g !== undefined && g !== null && g !== '') {
-    if (typeof g !== 'string' && typeof g !== 'number') issue(['globalFilter'], 'expected a string')
+    // A router that JSON-parses search params may hand over a number or boolean; use it as text.
+    if (typeof g !== 'string' && typeof g !== 'number' && typeof g !== 'boolean') issue(['globalFilter'], 'expected a string')
     else if (!o.globalFields.length) issue(['globalFilter'], 'global filter is not enabled for this table')
     else {
       const v = String(g).trim()
@@ -557,7 +604,7 @@ class Bad {
 function coerce(o: Resolved, col: ResolvedColumn, v: unknown): FilterValue | Bad {
   switch (col.type) {
     case 'string': {
-      if (typeof v !== 'string' && typeof v !== 'number') return new Bad('expected a string')
+      if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') return new Bad('expected a string')
       const s = String(v)
       return s.length > o.maxString ? new Bad(`longer than ${o.maxString} characters`) : s
     }

@@ -95,9 +95,17 @@ listed in `query.issues` instead, which suits hand-edited URLs.
 
 Normalisation worth knowing:
 
-- The global filter is trimmed; a number (`q=42` read by the Router as `42`) is used as the text `"42"`.
-  An empty or all-space search means no search.
-- A column listed twice in `sorting` is used once, at its first position.
+- URL values are decoded by column type. The global search and `string` / `enum` filters keep exactly
+  what was typed (`q=1.50`, `q=007`, `q=true`, `q=null` search for those characters); only a JSON array
+  (`f.status=["paid","pending"]`), a JSON object (`{"op":"eq","value":"x"}`) or a JSON-quoted string
+  (`q="42"`, as tanstack-table-url-state writes it) is parsed. `number`, `date` and `boolean` filters parse
+  numbers, `true` / `false` and arrays.
+- A search object whose values a router has already JSON-parsed may hand over numbers or booleans;
+  they are used as text (`true` → `"true"`, `1.5` → `"1.5"`), but the router may already have changed
+  them (`1.50` → `1.5`). tanstack-table-url-state quotes such values (`q="1.50"`), so they arrive intact.
+- The global filter is trimmed. An empty or all-space search means no search.
+- A column listed twice in `sorting` is used once, at its first position. Duplicates are removed
+  before `maxSorts` is checked, so `sort=a,a,a,b` counts as two columns.
 - With a `tiebreaker`, that field is appended ascending unless the request already sorts on it.
 
 The result is a plain, database-neutral description:

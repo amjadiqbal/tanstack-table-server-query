@@ -103,6 +103,48 @@ describe('input shapes', () => {
     expect(def.parse('?sort=-id').sorting.map((s) => [s.id, s.desc])).toEqual([['id', true]])
   })
 
+  it('keeps search and text filters exactly as typed in a URL', () => {
+    for (const typed of ['1.50', '1e3', '007', 'true', 'false', 'null', '-0', '[draft', '{x']) {
+      const enc = encodeURIComponent(typed)
+      const q = def.parse(`?q=${enc}&f.customer=${enc}`)
+      expect(q.globalFilter?.value).toBe(typed)
+      expect(q.filters).toEqual([{ id: 'customer', field: 'customer', type: 'string', op: 'contains', value: typed }])
+      expect(def.parse(new URLSearchParams({ q: typed })).globalFilter?.value).toBe(typed)
+      expect(def.parse({ q: typed, 'f.customer': typed }).filters[0].value).toBe(typed)
+    }
+  })
+
+  it('still decodes JSON where the column type needs it', () => {
+    const q = def.parse('?q="42"&f.customer="1.50"&f.status=["paid","pending"]&f.total=[1,5]&f.id=007&f.paid=true&f.email={"op":"eq","value":"a@b.c"}')
+    expect(q.globalFilter?.value).toBe('42')
+    expect(q.filters.map((f) => [f.id, f.op, f.value])).toEqual([
+      ['customer', 'contains', '1.50'],
+      ['status', 'in', ['paid', 'pending']],
+      ['total', 'gte', 1],
+      ['total', 'lte', 5],
+      ['id', 'eq', 7],
+      ['paid', 'eq', true],
+      ['email', 'eq', 'a@b.c'],
+    ])
+    expect(def.parse('?f.customer=["a,b","c"]').filters[0]).toMatchObject({ op: 'in', value: ['a,b', 'c'] })
+  })
+
+  it('turns values a router already parsed back into text for text columns', () => {
+    expect(def.parse({ q: true }).globalFilter?.value).toBe('true')
+    expect(def.parse({ q: 1.5 }).globalFilter?.value).toBe('1.5')
+    expect(def.parse({ 'f.customer': false }).filters[0].value).toBe('false')
+  })
+
+  it('removes duplicate sort columns before applying maxSorts', () => {
+    const q = def.parse('?sort=customer,customer,-customer,total,customer')
+    expect(q.sorting.map((s) => [s.id, s.desc])).toEqual([
+      ['customer', false],
+      ['total', false],
+      ['id', false],
+    ])
+    expect(errorOf(() => def.parse('?sort=customer,customer,total,paid,id')).message).toMatch(/at most 3 sort columns/)
+  })
+
   it('uses defaults when the input is empty', () => {
     const q = def.parse({})
     expect(q.sorting).toEqual([

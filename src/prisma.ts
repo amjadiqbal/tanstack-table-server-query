@@ -3,7 +3,8 @@ import { escapeLike, toTablePage, type FilterValue, type QueryFilter, type Table
 export interface PrismaOptions {
   /**
    * Add `mode: 'insensitive'` to `contains` / `startsWith` / `endsWith` and the global filter.
-   * Default `true`. Prisma supports it on PostgreSQL and MongoDB only; set `false` for SQLite and MySQL.
+   * Default `true`. Prisma's `mode` option exists on PostgreSQL and MongoDB only; this adapter is tested
+   * on PostgreSQL only (MySQL is not tested or supported).
    */
   insensitive?: boolean
   /**

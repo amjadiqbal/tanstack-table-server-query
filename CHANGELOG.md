@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-23
+
+### Fixed
+
+- URL search params were JSON-decoded before the column type was known, so the global search and text
+  filters changed what users typed: `q=1.50` searched "1.5", `q=1e3` "1000", `q=007` "7", `q=null` meant
+  no search, and `q=true` / `f.<text column>=true` were rejected. Values are now decoded by column type:
+  the search and `string` / `enum` filters keep the typed text, and only JSON arrays, objects and
+  JSON-quoted strings are parsed for them. Router-parsed booleans are accepted as text.
+- Duplicate sort columns counted toward `maxSorts`, so `sort=a,a,a,b` was rejected. Duplicates are now
+  removed first.
+
+### Changed
+
+- Prisma option comment no longer mentions MySQL (not tested or supported).
+
 ## [0.1.2] - 2026-10-23
 
 No behaviour change. Docs and tests after a README-vs-code audit.
