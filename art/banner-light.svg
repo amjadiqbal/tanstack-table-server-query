@@ -1,0 +1,39 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F8FAFC"/><stop offset="1" stop-color="#E8EEF6"/></linearGradient></defs>
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <g transform="translate(60,75) scale(0.29297)">
+  <defs>
+    <linearGradient id="ibg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F172A"/><stop offset="1" stop-color="#13243A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#ibg)"/>
+  <!-- table header with sort caret and filter funnel -->
+  <rect x="60" y="64" width="392" height="150" rx="28" fill="#1E293B"/>
+  <path d="M60 92 a28 28 0 0 1 28 -28 h336 a28 28 0 0 1 28 28 v34 h-392 z" fill="#334155"/>
+  <rect x="88" y="86" width="92" height="18" rx="9" fill="#F8FAFC"/>
+  <path d="M192 86 l11 15 l11 -15 z" fill="#A3E635"/>
+  <rect x="246" y="86" width="74" height="18" rx="9" fill="#94A3B8"/>
+  <path d="M352 82 h56 l-21 24 v14 l-14 8 v-22 z" fill="#A3E635"/>
+  <rect x="88" y="146" width="120" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="246" y="146" width="64" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="352" y="146" width="56" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="88" y="180" width="96" height="16" rx="8" fill="#475569"/>
+  <rect x="246" y="180" width="80" height="16" rx="8" fill="#475569"/>
+  <!-- arrow down -->
+  <g stroke="#A3E635" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M256 232 V292"/><path d="M230 268 L256 294 L282 268"/>
+  </g>
+  <!-- database -->
+  <path d="M128 330 v100 c0 22 57 40 128 40 s128 -18 128 -40 v-100" fill="#A3E635"/>
+  <path d="M128 380 c0 22 57 40 128 40 s128 -18 128 -40" fill="none" stroke="#0F172A" stroke-width="10"/>
+  <ellipse cx="256" cy="330" rx="128" ry="40" fill="#D9F99D"/>
+  <ellipse cx="256" cy="330" rx="128" ry="40" fill="none" stroke="#0F172A" stroke-width="6"/>
+</g>
+  <text x="238" y="98" font-family="Menlo, 'SF Mono', Consolas, monospace" font-size="16" font-weight="600" fill="#65A30D">for TanStack Table v9</text>
+  <text x="235" y="160" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="60" font-weight="700" fill="#0F172A">Table Server Query</text>
+  <text x="238" y="198" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="22" font-weight="500" fill="#15803D">Table state to safe, paginated database queries.</text>
+  <g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#334155"><g transform="translate(238,220)"><rect width="96" height="32" rx="16.0" fill="#FFFFFF" stroke="#CBD5E1"/><text x="48.0" y="21.1" text-anchor="middle">Drizzle</text></g><g transform="translate(344,220)"><rect width="88" height="32" rx="16.0" fill="#FFFFFF" stroke="#CBD5E1"/><text x="44.0" y="21.1" text-anchor="middle">Prisma</text></g><g transform="translate(442,220)"><rect width="88" height="32" rx="16.0" fill="#FFFFFF" stroke="#CBD5E1"/><text x="44.0" y="21.1" text-anchor="middle">Kysely</text></g><g transform="translate(540,220)"><rect width="105" height="32" rx="16.0" fill="#FFFFFF" stroke="#CBD5E1"/><text x="52.5" y="21.1" text-anchor="middle">Supabase</text></g></g>
+  <g font-family="Menlo, 'SF Mono', Consolas, monospace"><rect x="850" y="34" width="320" height="34.96" rx="17.48" fill="#FFFFFF" stroke="#65A30D" stroke-width="2"/><text x="866.56" y="56.4" font-size="12.4" fill="#65A30D" font-weight="700">sort=-total&amp;f.status=paid&amp;page=3</text><g stroke="#65A30D" stroke-width="2.8" stroke-linecap="round" fill="none"><path d="M1010.0 72.64000000000001 v14.72"/><path d="M1003.56 80.92000000000002 l6.44 6.44 l6.44 -6.44"/></g><rect x="850" y="94.72000000000001" width="320" height="86.48000000000002" rx="11.040000000000001" fill="#FFFFFF" stroke="#CBD5E1"/><text x="866.56" y="120.5" font-size="12.9" xml:space="preserve"><tspan fill="#0369A1" font-weight="700">WHERE </tspan><tspan fill="#1E293B">status = </tspan><tspan fill="#15803D">$1</tspan></text><text x="866.56" y="142.6" font-size="12.9" xml:space="preserve"><tspan fill="#0369A1" font-weight="700">ORDER BY </tspan><tspan fill="#1E293B">total DESC, id ASC</tspan></text><text x="866.56" y="164.6" font-size="12.9" xml:space="preserve"><tspan fill="#0369A1" font-weight="700">LIMIT </tspan><tspan fill="#15803D">10</tspan><tspan fill="#0369A1" font-weight="700"> OFFSET </tspan><tspan fill="#15803D">20</tspan></text></g>
+  <text x="1160" y="285" text-anchor="end" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#64748B">@amjadiqbal/tanstack-table-server-query</text>
+</svg>

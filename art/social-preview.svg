@@ -1,0 +1,41 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0B1220"/><stop offset="1" stop-color="#111C33"/></linearGradient></defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <g transform="translate(80,96) scale(0.34375)">
+  <defs>
+    <linearGradient id="ibg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F172A"/><stop offset="1" stop-color="#13243A"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#ibg)"/>
+  <!-- table header with sort caret and filter funnel -->
+  <rect x="60" y="64" width="392" height="150" rx="28" fill="#1E293B"/>
+  <path d="M60 92 a28 28 0 0 1 28 -28 h336 a28 28 0 0 1 28 28 v34 h-392 z" fill="#334155"/>
+  <rect x="88" y="86" width="92" height="18" rx="9" fill="#F8FAFC"/>
+  <path d="M192 86 l11 15 l11 -15 z" fill="#A3E635"/>
+  <rect x="246" y="86" width="74" height="18" rx="9" fill="#94A3B8"/>
+  <path d="M352 82 h56 l-21 24 v14 l-14 8 v-22 z" fill="#A3E635"/>
+  <rect x="88" y="146" width="120" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="246" y="146" width="64" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="352" y="146" width="56" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="88" y="180" width="96" height="16" rx="8" fill="#475569"/>
+  <rect x="246" y="180" width="80" height="16" rx="8" fill="#475569"/>
+  <!-- arrow down -->
+  <g stroke="#A3E635" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M256 232 V292"/><path d="M230 268 L256 294 L282 268"/>
+  </g>
+  <!-- database -->
+  <path d="M128 330 v100 c0 22 57 40 128 40 s128 -18 128 -40 v-100" fill="#A3E635"/>
+  <path d="M128 380 c0 22 57 40 128 40 s128 -18 128 -40" fill="none" stroke="#0F172A" stroke-width="10"/>
+  <ellipse cx="256" cy="330" rx="128" ry="40" fill="#D9F99D"/>
+  <ellipse cx="256" cy="330" rx="128" ry="40" fill="none" stroke="#0F172A" stroke-width="6"/>
+</g>
+  <text x="292" y="128" font-family="Menlo, 'SF Mono', Consolas, monospace" font-size="20" font-weight="600" fill="#A3E635">@amjadiqbal/tanstack-table-server-query</text>
+  <text x="288" y="208" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="74" font-weight="700" fill="#F8FAFC">Table Server Query</text>
+  <text x="292" y="256" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500" fill="#D9F99D">TanStack Table v9 state to server-side database queries</text>
+  <g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#CBD5E1"><g transform="translate(80,320)"><rect width="107" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="53.5" y="26.4" text-anchor="middle">sorting</text></g><g transform="translate(199,320)"><rect width="179" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="89.5" y="26.4" text-anchor="middle">column filters</text></g><g transform="translate(390,320)"><rect width="169" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="84.5" y="26.4" text-anchor="middle">global filter</text></g><g transform="translate(571,320)"><rect width="138" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="69.0" y="26.4" text-anchor="middle">pagination</text></g></g>
+  <g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#CBD5E1"><g transform="translate(80,372)"><rect width="107" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="53.5" y="26.4" text-anchor="middle">Drizzle</text></g><g transform="translate(199,372)"><rect width="97" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="48.5" y="26.4" text-anchor="middle">Prisma</text></g><g transform="translate(308,372)"><rect width="97" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="48.5" y="26.4" text-anchor="middle">Kysely</text></g><g transform="translate(417,372)"><rect width="118" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="59.0" y="26.4" text-anchor="middle">Supabase</text></g></g>
+  <g font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#CBD5E1"><g transform="translate(80,424)"><rect width="209" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="104.5" y="26.4" text-anchor="middle">column allow-list</text></g><g transform="translate(301,424)"><rect width="220" height="40" rx="20.0" fill="#16213A" stroke="#24324F"/><text x="110.0" y="26.4" text-anchor="middle">rows + total count</text></g></g>
+  <g font-family="Menlo, 'SF Mono', Consolas, monospace"><rect x="740" y="316" width="460" height="38.0" rx="19.0" fill="#0F172A" stroke="#A3E635" stroke-width="2"/><text x="758.0" y="340.3" font-size="13.5" fill="#A3E635" font-weight="700">sort=-total&amp;f.status=paid&amp;page=3</text><g stroke="#A3E635" stroke-width="3.0" stroke-linecap="round" fill="none"><path d="M970.0 358.0 v16.0"/><path d="M963.0 367.0 l7.0 7.0 l7.0 -7.0"/></g><rect x="740" y="382.0" width="460" height="94.0" rx="12.0" fill="#0F172A" stroke="#24324F"/><text x="758.0" y="410.0" font-size="14.0" xml:space="preserve"><tspan fill="#7DD3FC" font-weight="700">WHERE </tspan><tspan fill="#E2E8F0">status = </tspan><tspan fill="#A3E635">$1</tspan></text><text x="758.0" y="434.0" font-size="14.0" xml:space="preserve"><tspan fill="#7DD3FC" font-weight="700">ORDER BY </tspan><tspan fill="#E2E8F0">total DESC, id ASC</tspan></text><text x="758.0" y="458.0" font-size="14.0" xml:space="preserve"><tspan fill="#7DD3FC" font-weight="700">LIMIT </tspan><tspan fill="#A3E635">10</tspan><tspan fill="#7DD3FC" font-weight="700"> OFFSET </tspan><tspan fill="#A3E635">20</tspan></text></g>
+  <text x="80" y="590" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="20" fill="#64748B">Free and open source · MIT · by Amjad</text>
+</svg>
